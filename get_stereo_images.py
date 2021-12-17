@@ -8,7 +8,11 @@ import sys
 
 # set values for cameras
 capL = cv2.VideoCapture(1)
-capR = cv2.VideoCapture(0)
+capR = cv2.VideoCapture(2)
+capR.set(3, 1280)
+capR.set(4, 720)
+capL.set(3, 1280)
+capL.set(4, 720)
 
 i = 0 # image index
 
@@ -29,15 +33,15 @@ def main():
         _, leftFrame = capL.retrieve()
         _, rightFrame = capR.retrieve()
 
-        cv2.imshow('capL', leftFrame)
-        cv2.imshow('capR', rightFrame)
+        cv2.imshow('capL', cv2.resize(leftFrame, (512, 288)))
+        cv2.imshow('capR', cv2.resize(rightFrame, (512, 288)))
 
         key = cv2.waitKey(1)
         if key == ord('q'):
             break
         elif key == ord('c'):
-            cv2.imwrite(sys.argv[1] + "/left/left_" + str(i) + ".jpg", leftFrame)
-            cv2.imwrite(sys.argv[1] + "/right/right_" + str(i) + ".jpg", rightFrame)
+            cv2.imwrite(sys.argv[1] + "/left_" + str(i) + ".png", leftFrame)
+            cv2.imwrite(sys.argv[1] + "/right_" + str(i) + ".png", rightFrame)
             i += 1
     
     capL.release()

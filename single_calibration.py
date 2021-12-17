@@ -1,4 +1,4 @@
-# this script performs the calibration for a single camera
+ # this script performs the calibration for a   single camera
 import numpy as np
 import cv2
 import glob
@@ -14,7 +14,7 @@ def calibrate(path, square_size, width=9, height=6):
 
     # prepare object points, like (0,0,0), (2,0,0) etc
     objp = np.zeros((height*width, 3), np.float32)
-    objp[0:54, 0:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
+    objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
 
     objp = objp * square_size # create real world coordinates
 
@@ -24,7 +24,7 @@ def calibrate(path, square_size, width=9, height=6):
 
     # loop through all the images
     # discard image if opencv cannot find corners
-    images = glob.glob(path + '/' + "*.jpg")
+    images = glob.glob(path + '/' + "*.png")
 
     for fname in images:
         # read all images
@@ -47,8 +47,8 @@ def calibrate(path, square_size, width=9, height=6):
             #cv2.waitKey(500)
 
         ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (img.shape[0], img.shape[1]), None, None)
-        save_points('OP', objpoints[0], 'points.yml')
-        save_points('IP', imgpoints[0], 'points.yml')
+        save_points('OP', objpoints[0], 'right_points.yml')
+        save_points('IP', imgpoints[0], 'right_points.yml')
 
         return [ret, mtx, dist, rvecs, tvecs]
 
@@ -64,12 +64,12 @@ if __name__ == "__main__":
     # args = parser.parse_args()
 
     # call the calibration function and save as file
-    ret, mtx, dist, rvecs, tvecs = calibrate(path='calibration_images', square_size=2.3)
-    object_points = load_points('OP', 'points.yml')
-    image_points = load_points('IP', 'points.yml')
+    ret, mtx, dist, rvecs, tvecs = calibrate(path='stereoCalibrationImages/right', square_size=2.3)
+    object_points = load_points('OP', 'right_points.yml')
+    image_points = load_points('IP', 'right_points.yml')
 
-    save_coefficients(mtx, dist, tvecs[0], rvecs[0], 'parameters.yml')
-    parameters = load_coefficients('parameters.yml')
+    save_coefficients(mtx, dist, tvecs[0], rvecs[0], 'right_cam.yml')
+    parameters = load_coefficients('right_cam.yml')
     p_error = error(object_points, image_points,  parameters[2],  parameters[3],  parameters[0],  parameters[1])
 
     print("Calibration is finished. RMS: ", ret)

@@ -25,8 +25,8 @@ def load_image_points(dir, square_size, width=9, height=6):
     right_imgpoints = [] # 2D points in image plane
 
     # read images from directory
-    left_images = glob.glob(dir + '/left_*.jpg')
-    right_images = glob.glob(dir + '/right_*.jpg')
+    left_images = glob.glob(dir + '/left_*.png')
+    right_images = glob.glob(dir + '/right_*.png')
 
     # sort the images to make sure they're correctly ordered and paired
     left_images.sort()
@@ -71,12 +71,12 @@ def load_image_points(dir, square_size, width=9, height=6):
 
     return [objpoints, left_imgpoints, right_imgpoints]
 
-def stereo_calibrate(file, dir, save_file, square_size, width=9, height=6):
+def stereo_calibrate(left_file, right_file, dir, save_file, square_size, width=9, height=6):
     """Stereo calibration and rectification"""
     # load image points
     objp, leftp, rightp = load_image_points(dir, square_size, width, height)
-    K1, D1, _t, _r = load_coefficients(file)
-    K2, D2, _t, _r = load_coefficients(file)
+    K1, D1, _t, _r = load_coefficients(left_file)
+    K2, D2, _t, _r = load_coefficients(right_file)
 
     flag = 0
     flag |= cv2.CALIB_USE_INTRINSIC_GUESS
@@ -88,10 +88,11 @@ def stereo_calibrate(file, dir, save_file, square_size, width=9, height=6):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Camera calibration')
-    parser.add_argument('--file', type=str, required=True, help='camera matrix file')
+    parser.add_argument('--left_file', type=str, required=True, help='left camera matrix file')
+    parser.add_argument('--right_file', type=str, required=True, help='right camera matrix file')
     parser.add_argument('--dir', type=str, required=True, help='calibration images directory')
     parser.add_argument('--square_size', type=float, required=True, help='chessboard square length')
     parser.add_argument('--save_file', type=str, required=True, help='YML file to save stereo calibratin matrices')
 
     args = parser.parse_args()
-    stereo_calibrate(args.file, args.dir, args.save_file, args.square_size)
+    stereo_calibrate(args.left_file, args.right_file, args.dir, args.save_file, args.square_size)

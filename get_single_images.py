@@ -4,7 +4,7 @@ import time
 import sys
 
 # set the camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 i = 0
 
