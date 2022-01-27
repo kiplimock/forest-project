@@ -12,8 +12,8 @@ def main():
     scene.load_image_pair("images/fountain-p11/0004.jpg", "images/fountain-p11/0005.jpg")
 
     # perform computations
-    scene.plot_optic_flow()
-    # scene._plot_rectified_images()
+    # scene.plot_optic_flow()
+    scene._plot_rectified_images()
 
 if __name__ == '__main__':
     main()

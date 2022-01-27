@@ -67,7 +67,7 @@ def load_image_points(dir, square_size, width=9, height=6):
             print("Chessboard couldn't be detected. Image pair: " + left_img + " and " + right_img)
             continue
 
-    image_size = gray_right.shape
+    # image_size = gray_right.shape
 
     return [objpoints, left_imgpoints, right_imgpoints]
 

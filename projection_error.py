@@ -5,8 +5,11 @@ def projection_error(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
     mean_error = 0
 
     # generate 2D points from 3D points and camera parameters
+    # print(objpoints[2])
+    # for i in range(len(objpoints)):
     imgpoints2, _ = cv2.projectPoints(objpoints, rvecs, tvecs, mtx, dist)
-    save_points('IP2', imgpoints2, 'right_points.yml')
+    # print(imgpoints2)
+    save_points('IP2', imgpoints2, 'points.yml')
     # compute error between projected points and original points
     error = cv2.norm(imgpoints, imgpoints2, cv2.NORM_L2)/len(imgpoints2)
     mean_error += error

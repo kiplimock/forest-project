@@ -38,15 +38,15 @@ class SceneReconstruction3D:
         self.img2 = cv2.undistort(self.img2, self.K, self.d)
 
     def __extract_keypoints(self, feat_mode):
-        if feat_mode == "SURF":
+        if feat_mode.lower == "surf":
             # feature matching using SURF and BFMatcher
             self._extract_keypoints_surf()
         else:
-            if feat_mode == "flow":
-                # feature matching using optical flow
+            if feat_mode.lower() == "flow":
+                # feature matching using optic flow
                 self._extract_keypoints_flow()
             else:
-                sys.exit("Unknown mode " + feat_mode + ". Use 'SURF' or 'flow'")
+                sys.exit("Unknown mode " + feat_mode + ". Use 'SURF' or 'FLOW'")
     
     # point matching using SURF
     def _extract_keypoints_surf(self):
@@ -124,7 +124,9 @@ class SceneReconstruction3D:
 
     # fundamental matrix F
     def _find_fundamental_matrix(self):
-        self.F, self.Fmask = cv2.findFundamentalMat(self.match_pts1, self.match_pts2, cv2.FM_RANSAC, 0.1, 0.99)
+        self.F, self.Fmask = cv2.findFundamentalMat(self.match_pts1,
+                                                    self.match_pts2, 
+                                                    cv2.FM_RANSAC, 0.1, 0.99)
 
     # essential matrix E
     def _find_essential_matrix(self):
@@ -132,24 +134,61 @@ class SceneReconstruction3D:
 
     # decompose essential matrix into rotational and translational components [R|t]
     def _find_camera_matrices(self):
+        """
+        Computes the [R|t] camera matrix
+        """
         U, S, Vt = np.linalg.svd(self.E) # U & V are unitary matrices
         W = np.array([0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]).reshape(3, 3)
         # U, V & W together are used to reconstruct [R|t]
 
-        # convert keypoints from 2D to homogeneous coordinates
+        # iterate over all the point correspondences used in estimating
+        # the fundamental matrix
         first_inliers = []
         second_inliers = []
         for i in range(len(self.Fmask)):
             if self.Fmask[i]:
-                first_inliers.append(self.K_inv.dot([self.match_pts1[i][0], self.match_pts1[i][1], 1.0]))
-                second_inliers.append(self.K_inv.dot([self.match_pts2[i][0], self.match_pts2[i][1], 1.0]))
+                # convert keypoints from 2D to homogeneous coordinates
+                first_inliers.append(self.K_inv.dot([self.match_pts1[i][0],
+                                     self.match_pts1[i][1], 1.0]))
+                second_inliers.append(self.K_inv.dot([self.match_pts2[i][0],
+                                      self.match_pts2[i][1], 1.0]))
+        
+        # determine the correct choice of theh camera matrix
+        # only in one of the 4 possible configurations will all the points
+        # be in front of both cameras
+        # First Choice: R = U * Wt * Vt, T = +u_3 (Hartley & Zisserman 9.19)
+        R = U.dot(W).dot(Vt)
+        T = U[:, 2]
+        if not self._in_front_of_both_cameras(first_inliers, second_inliers, R, T):
+            # Second Choice: R = U * W * Vt, T = -u_3
+            T = - U[:, 2]
+        
+        if not self._in_front_of_both_cameras(first_inliers, second_inliers, R, T):
+            # Third Choice: R = U * Wt * Vt, T = u_3
+            R = U.dot(W.T).dot(Vt)
+            T = U[:, 2]
+
+            if not self._in_front_of_both_cameras(first_inliers, second_inliers, R, T):
+                # Fourth Choice: R = U * Wt * Vt, T = -u_3
+                T = - U[:, 2]
+
+        self.match_inliers1 = first_inliers
+        self.match_inliers2 = second_inliers
+        self.Rt1 = np.hstack((np.eye(3), np.zeros((3, 1))))
+        self.Rt2 = np.hstack((R, T.reshape(3, 1)))
 
     # validate keypoint pairs by making sure they lie in front of both cameras
     def _in_front_of_both_cameras(self, first_points, second_points, rot, trans):
+        """
+        Determines whether point correspondences are in front of both cameras
+        """
         rot_inv = rot
         for first, second in zip(first_points, second_points):
-            first_z = np.dot(rot[0, :] - second[0] * rot[2, :], trans) / np.dot(rot[0, :] - second[0] * rot[2, :], second)
-            first_3d_point = np.array([first[0] * first_z, second[0] * first_z, first_z])
+            first_z = np.dot(rot[0, :] - second[0] * rot[2, :], 
+                             trans) / np.dot(rot[0, :] - second[0] * rot[2, :], 
+                             second)
+            first_3d_point = np.array([first[0] * first_z, 
+                                      second[0] * first_z, first_z])
             second_3d_point = np.dot(rot.T, first_3d_point) - np.dot(rot.T, trans)
 
             if first_3d_point[2] < 0 or second_3d_point[2] < 0:
@@ -158,6 +197,10 @@ class SceneReconstruction3D:
         
     # perform image rectification
     def _plot_rectified_images(self, feat_mode="SURF"):
+        """
+        Plots Rectified images
+        This method computes and plots a rectified version of the two images side by side
+        """
         self.__extract_keypoints(feat_mode)
         self._find_fundamental_matrix()
         self._find_essential_matrix()
@@ -166,23 +209,38 @@ class SceneReconstruction3D:
         R = self.Rt2[:, :3]
         T = self.Rt2[:, 3]
 
-        R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(self.K, self.d, self.K, self.d, self.img1.shape[:2], R, T, alpha=1.0)
+        # perform the rectification
+        R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(self.K, self.d,
+                                                          self.K, self.d, 
+                                                          self.img1.shape[:2],
+                                                          R, T, alpha=1.0)
 
-        mapx1, mapy1 = cv2.initUndistortRectifyMap(self.K, self.d, R1, self.K, self.img1.shape[:2], cv2.CV_32F)
-        mapx2, mapy2 = cv2.initUndistortRectifyMap(self.K, self.d, R2, self.K, self.img2.shape[:2], cv2.CV_32F)
+        mapx1, mapy1 = cv2.initUndistortRectifyMap(self.K, self.d, R1, self.K,
+                                                   self.img1.shape[:2], 
+                                                   cv2.CV_32F)
+        mapx2, mapy2 = cv2.initUndistortRectifyMap(self.K, self.d, R2, self.K,
+                                                   self.img2.shape[:2], 
+                                                   cv2.CV_32F)
 
         img_rect1 = cv2.remap(self.img1, mapx1, mapy1, cv2.INTER_LINEAR)
         img_rect2 = cv2.remap(self.img2, mapx2, mapy2, cv2.INTER_LINEAR)
 
         # plot the two images next to each other
-        total_size = (max(img_rect1.shape[0], img_rect2.shape[0]), img_rect1.shape[1] + img_rect2.shape[1], 3)
+        total_size = (max(img_rect1.shape[0], img_rect2.shape[0]),
+                      img_rect1.shape[1] + img_rect2.shape[1], 3)
         img = np.zeros(total_size, dtype=np.uint8)
         img[:img_rect1.shape[0], :img_rect1.shape[1]] = img_rect1
         img[:img_rect2.shape[0], img_rect1.shape[1]:] = img_rect2
 
-        # draw horizontal blue lines every 25px across the side-by-side images
+        # draw horizontal blue lines every 25px across the side-by-side image
         for i in range(20, img.shape[0], 25):
-            cv2.line(img, (0, 1), (img.shape[1], i), (255,0,0))
-            cv2.imshow('imgRectified', img)
+            cv2.line(img, (0, i), (img.shape[1], i), (255,0,0))
+
+        plt.subplot(121), plt.imshow(self.img1), plt.axis('off')
+        plt.subplot(122), plt.imshow(self.img2), plt.axis('off')
+        plt.show()
+
+        # cv2.imshow('imgRectified', img)
+        # cv2.waitKey()
 
 
