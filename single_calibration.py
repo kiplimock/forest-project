@@ -1,11 +1,13 @@
  # this script performs the calibration for a   single camera
-import random
-import numpy as np
-import matplotlib.pyplot as plt
-import cv2
 import glob
-from param_storage import  save_coefficients
+import random
 from turtle import color
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+
+from param_storage import save_coefficients
 
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -121,7 +123,7 @@ def plot_scatter(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
     # plot legend outside the image
     plt.legend(bbox_to_anchor=(1.05,1.0), loc='upper left')
     plt.tight_layout()
-    plt.text(-1.4, 1.0, 'RMSE: ' + str(round(ret, 4)))
+    plt.text(-1.1, 1.7, 'RMSE: ' + str(round(ret, 4)))
     plt.show()
 
 
@@ -129,7 +131,7 @@ def plot_scatter(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
 
 if __name__ == "__main__":
 
-    ret, mtx, dist, rvecs, tvecs, image_points, object_points = calibrate(path='images/cam2/take3', square_size=2.3)
+    ret, mtx, dist, rvecs, tvecs, image_points, object_points = calibrate(path='images/cam1/take1', square_size=2.3)
 
     save_coefficients(mtx, dist, tvecs[0], rvecs[0], 'cam.yml')
     p_error = projection_error(object_points, image_points, tvecs, rvecs, mtx, dist)
