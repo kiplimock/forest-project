@@ -72,17 +72,18 @@ def projection_error(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
     calibration
     """
     mean_error = 0
+    image_errors = []
     # generate 2D points from 3D points and camera parameters
     for i in range(len(objpoints)):
         imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
 
         # compute error between projected points and original points
         error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2)/len(imgpoints2)
+        image_errors.append(error)
         mean_error += error
     
-    # print(len(objpoints))
-    # print(imgpoints[0][1])
-    return mean_error/len(objpoints)
+    ME = mean_error/len(objpoints)
+    return {'rms' :ME, 'Image errors': image_errors}
 
 def plot_scatter(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
     """
@@ -120,6 +121,7 @@ def plot_scatter(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
     # plot legend outside the image
     plt.legend(bbox_to_anchor=(1.05,1.0), loc='upper left')
     plt.tight_layout()
+    plt.text(-1.4, 1.0, 'RMSE: ' + str(round(ret, 4)))
     plt.show()
 
 
@@ -127,11 +129,11 @@ def plot_scatter(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
 
 if __name__ == "__main__":
 
-    ret, mtx, dist, rvecs, tvecs, image_points, object_points = calibrate(path='images/cam1/take1', square_size=2.3)
+    ret, mtx, dist, rvecs, tvecs, image_points, object_points = calibrate(path='images/cam2/take3', square_size=2.3)
 
     save_coefficients(mtx, dist, tvecs[0], rvecs[0], 'cam.yml')
     p_error = projection_error(object_points, image_points, tvecs, rvecs, mtx, dist)
 
     print("Calibration is finished. RMS: ", ret)
-    print("Mean Projection Error: ", p_error)
+    print("Error Information: ", p_error)
     plot_scatter(object_points, image_points, tvecs, rvecs, mtx, dist)
