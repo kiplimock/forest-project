@@ -131,7 +131,7 @@ def plot_scatter(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
 
 if __name__ == "__main__":
 
-    ret, mtx, dist, rvecs, tvecs, image_points, object_points = calibrate(path='images/cam1/take1', square_size=2.3)
+    ret, mtx, dist, rvecs, tvecs, image_points, object_points = calibrate(path='images/cam1/take3', square_size=2.3)
 
     save_coefficients(mtx, dist, tvecs[0], rvecs[0], 'cam.yml')
     p_error = projection_error(object_points, image_points, tvecs, rvecs, mtx, dist)
