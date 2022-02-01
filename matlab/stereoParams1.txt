@@ -1,0 +1,21 @@
+stereoParams = 
+
+  stereoParameters with properties:
+
+   Parameters of Two Cameras
+        CameraParameters1: [1×1 cameraParameters]
+        CameraParameters2: [1×1 cameraParameters]
+
+   Inter-camera Geometry
+        RotationOfCamera2: [3×3 double]
+     TranslationOfCamera2: [-191.1147 0.2361 -10.7967]
+        FundamentalMatrix: [3×3 double]
+          EssentialMatrix: [3×3 double]
+
+   Accuracy of Estimation
+    MeanReprojectionError: 0.3393
+
+   Calibration Settings
+              NumPatterns: 25
+              WorldPoints: [54×2 double]
+               WorldUnits: 'millimeters'
