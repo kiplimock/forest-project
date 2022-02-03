@@ -67,7 +67,7 @@ def load_image_points(dir, square_size, width=9, height=6):
             print("Chessboard couldn't be detected. Image pair: " + left_img + " and " + right_img)
             continue
 
-    # image_size = gray_right.shape
+    image_size = gray_right.shape[::-1]
 
     return [objpoints, left_imgpoints, right_imgpoints]
 
@@ -80,6 +80,7 @@ def stereo_calibrate(left_file, right_file, dir, save_file, square_size, width=9
 
     flag = 0
     flag |= cv2.CALIB_USE_INTRINSIC_GUESS
+
     ret, K1, D1, K2, D2, R, T, E, F = cv2.stereoCalibrate(objp, leftp, rightp, K1, D1, K2, D2, image_size)
     print("Stereo Calibration RMS: ", ret)
     R1, R2, P1, P2, Q, roi_left, roi_right = cv2.stereoRectify(K1, D1, K2, D2, image_size, R, T, flags=cv2.CALIB_ZERO_DISPARITY, alpha=0.9)
