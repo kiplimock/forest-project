@@ -15,7 +15,7 @@ R1, R2 = params[8:10]
 
 imgL = cv2.imread('caps/left_11.png', 0)
 imgR = cv2.imread('caps/right_11.png', 0)
-
+print(type(imgL))
 size = imgL.shape[:2]
 
 # # estimate rectification parameters

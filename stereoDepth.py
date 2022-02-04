@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import cv2
 
 # read both images and convert to grayscale
-imgL = cv2.imread('caps/left_ll.png', cv2.IMREAD_GRAYSCALE)
-imgR = cv2.imread('caps/right_ll.png', cv2.IMREAD_GRAYSCALE)
+imgL = cv2.imread("caps/left_11.png", 0)
+imgR = cv2.imread("caps/right_11.png", 0)
 
 # --------------------------------------------- #
 # PREPROCESSING
@@ -12,8 +12,8 @@ imgR = cv2.imread('caps/right_ll.png', cv2.IMREAD_GRAYSCALE)
 
 # Compare both preprocessed images
 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-axes[0].imshow(imgL, cmap='gray')
-axes[1].imshow(imgR, cmap='gray')
+axes[0].imshow(imgL)
+axes[1].imshow(imgR)
 axes[0].axhline(250)
 axes[1].axhline(250)
 axes[0].axhline(450)
@@ -39,15 +39,15 @@ search_params = dict(checks=50)
 flann = cv2.FlannBasedMatcher(index_params, search_params)
 matches = flann.knnMatch(des1, des2, k=2)
 
-# Apply D.G Lowe ratio test to keep good matches
-matchesMask = [[0,0] for i in range(len(matches))]
+# Apply the D.G Lowe ratio test to keep good matches
+matchesMask = [[0, 0] for i in range(len(matches))]
 good = []
 pts1 = []
 pts2 = []
 
 for i, (m, n) in enumerate(matches):
     if m.distance < 0.7*n.distance:
-        # keep this keypoiny pair
+        # keep this keypoint pair
         matchesMask[i] = [1, 0]
         good.append(m)
         pts2.append(kp2[m.trainIdx].pt)
@@ -60,7 +60,7 @@ draw_params = dict(matchColor=(0, 255, 0),
                    matchesMask=matchesMask[300:500],
                    flags=cv2.DrawMatchesFlags_DEFAULT)
 
-keypoint_matches = cv2.drawMatchesKnn(imgL, kp1, imgR, kp2, matchesMask[300:500], None, **draw_params)
+keypoint_matches = cv2.drawMatchesKnn(imgL, kp1, imgR, kp2, matches[300:500], None, **draw_params)
 cv2.imshow("Keypoint Matches", keypoint_matches)
 
 # ------------------------------------- #
@@ -101,7 +101,7 @@ def drawlines(img1src, img2src, lines, pts1src, pts2src):
 
 # Find epilines corresponding to points in the right image (second image) and 
 # drawing its lines on the left image
-lines1 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 2, fundamental_matrix)
+lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, fundamental_matrix)
 lines1 = lines1.reshape(-1, 3)
 img5, img6 = drawlines(imgL, imgR, lines1, pts1, pts2)
 
@@ -121,9 +121,9 @@ h1, w1 = imgL.shape
 h2, w2 = imgR.shape
 _, H1, H2 = cv2.stereoRectifyUncalibrated(np.float32(pts1), np.float32(pts2), fundamental_matrix, imgSize=(w1,h1))
 
-# Rectify the Images and Save Them
+# Rectify the Images
 imgL_rectified = cv2.warpPerspective(imgL, H1, (w1, h1))
-imgR_rectified = cv2.warpPerspective(imgL, H2, (w2, h2))
+imgR_rectified = cv2.warpPerspective(imgR, H2, (w2, h2))
 
 # Plot the Rectified Images
 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
@@ -141,14 +141,26 @@ plt.show()
 # -------------------------------- #
 
 # Matched blocked size
-block_size = 11
+block_size = 11 # must be odd and > 1. Normally in the range [3, 11]
 min_disp = -128
 max_disp = 128
 
+# max_disp - min_disp must always > 0 and be divisible by 16
 num_disp = max_disp - min_disp
-uniquenessRatio = 5
+
+# % margin by which minimum cost function beast the second best to be considered a correct match
+# range [5, 15] is good
+uniquenessRatio = 5 
+
+# max size of smooth disparity regions to consider their noise speckles and invalidate
+# range [50, 200] is good. 0 disables speckle filtering
 speckleWindowSize = 200
+
+# maximum disparity variation within each connected component. 1 or 2 is good
 speckleRange = 2
+
+# Maximum allowed difference (in integer pixel units) in the left-right disparity check
+# 0 disables the check
 disp12MaxDiff = 0
 
 stereo = cv2.StereoSGBM_create(
@@ -172,6 +184,5 @@ plt.show()
 # Normalize the values to the range 0-255 for a grayscale image
 disparity_SGBM = cv2.normalize(disparity_SGBM, disparity_SGBM, alpha=255, beta=0, norm_type=cv2.NORM_MINMAX)
 disparity_SGBM = np.uint8(disparity_SGBM)
-cv2.imshow("Depth Map", disparity_SGBM)
-cv2.waitKey()
-cv2.destroyAllWindows()
+plt.imshow(disparity_SGBM, cmap='gray')
+plt.show()
